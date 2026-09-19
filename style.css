@@ -1,1 +1,59 @@
+/* =========================================
+   DONG — CORE CLOCK
+   ========================================= */
 
+const clockElement = document.getElementById("clock");
+const dateElement = document.getElementById("date");
+
+
+/* -----------------------------------------
+   UPDATE CLOCK
+   ----------------------------------------- */
+
+function updateClock() {
+
+  const now = new Date();
+
+  let hours = now.getHours();
+  const minutes = now.getMinutes();
+
+  // 24-hour clock for now
+  hours = String(hours).padStart(2, "0");
+
+  const mins = String(minutes).padStart(2, "0");
+
+
+  clockElement.innerHTML = `
+    ${hours}<br>
+    ${mins}
+  `;
+
+
+  /* ---------------------------------------
+     DATE
+     --------------------------------------- */
+
+  const dateOptions = {
+    weekday: "short",
+    day: "numeric",
+    month: "short"
+  };
+
+  dateElement.textContent =
+    now.toLocaleDateString(
+      undefined,
+      dateOptions
+    );
+}
+
+
+/* -----------------------------------------
+   START
+   ----------------------------------------- */
+
+updateClock();
+
+setInterval(
+  updateClock,
+  1000
+);
