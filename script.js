@@ -1,452 +1,646 @@
-/* =========================================
-   DONG — MINIMAL CHARGING SCREEN
-   ========================================= */
+/* =========================================================
+   DONG
+   Charging Display
+   ========================================================= */
 
-:root {
-  --bg: #000000;
-  --text: #f5f5f7;
-  --muted: #8c8c96;
-  --purple: #b98cff;
-  --purple-soft: #8d5cff;
-  --green: #5cff8a;
-  --card: rgba(255, 255, 255, 0.055);
-  --border: rgba(255, 255, 255, 0.08);
+
+/* ---------- ELEMENTS ---------- */
+
+const clockElement =
+    document.getElementById("clock");
+
+const dateElement =
+    document.getElementById("date");
+
+const batteryElement =
+    document.getElementById("batteryPercent");
+
+const chargingScreen =
+    document.getElementById("chargingScreen");
+
+const musicPlayer =
+    document.getElementById("musicPlayer");
+
+const settingsButton =
+    document.getElementById("settingsButton");
+
+const settingsPanel =
+    document.getElementById("settingsPanel");
+
+const closeSettings =
+    document.getElementById("closeSettings");
+
+const formatToggle =
+    document.getElementById("formatToggle");
+
+const batteryToggle =
+    document.getElementById("batteryToggle");
+
+const dateToggle =
+    document.getElementById("dateToggle");
+
+const playButton =
+    document.getElementById("playButton");
+
+const previousButton =
+    document.getElementById("previousButton");
+
+const nextButton =
+    document.getElementById("nextButton");
+
+
+/* ---------- SETTINGS ---------- */
+
+let settings = {
+
+    clockStyle: "digital",
+
+    theme: "amoled",
+
+    twentyFourHour: true,
+
+    showBattery: true,
+
+    showDate: true
+
+};
+
+
+/* ---------- LOAD SETTINGS ---------- */
+
+function loadSettings() {
+
+    try {
+
+        const saved =
+            localStorage.getItem("dongSettings");
+
+        if (saved) {
+
+            settings =
+                {
+                    ...settings,
+                    ...JSON.parse(saved)
+                };
+
+        }
+
+    } catch (error) {
+
+        console.log(
+            "Dong: Could not load settings."
+        );
+
+    }
+
+    applySettings();
+
 }
 
 
-/* -----------------------------------------
-   RESET
-   ----------------------------------------- */
+/* ---------- SAVE SETTINGS ---------- */
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+function saveSettings() {
 
-html,
-body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
+    try {
 
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    Arial,
-    sans-serif;
+        localStorage.setItem(
+            "dongSettings",
+            JSON.stringify(settings)
+        );
 
-  -webkit-font-smoothing: antialiased;
+    } catch (error) {
+
+        console.log(
+            "Dong: Could not save settings."
+        );
+
+    }
+
 }
 
 
-/* -----------------------------------------
-   MAIN SCREEN
-   ----------------------------------------- */
+/* ---------- CLOCK ---------- */
 
-.charging-screen {
-  position: relative;
+function updateClock() {
 
-  width: 100%;
-  height: 100dvh;
+    const now = new Date();
 
-  min-height: 100vh;
+    let hours =
+        now.getHours();
 
-  display: flex;
-  flex-direction: column;
+    const minutes =
+        now.getMinutes();
 
-  padding:
-    max(24px, env(safe-area-inset-top))
-    24px
-    max(24px, env(safe-area-inset-bottom));
+    const seconds =
+        now.getSeconds();
 
-  background:
-    radial-gradient(
-      circle at 50% 72%,
-      rgba(125, 70, 255, 0.16),
-      transparent 35%
-    ),
-    #000000;
 
-  overflow: hidden;
+    if (!settings.twentyFourHour) {
+
+        hours =
+            hours % 12 || 12;
+
+    }
+
+
+    const hourText =
+        String(hours).padStart(2, "0");
+
+    const minuteText =
+        String(minutes).padStart(2, "0");
+
+
+    /*
+        Main clock intentionally shows
+        hours and minutes only.
+    */
+
+    clockElement.textContent =
+        `${hourText}:${minuteText}`;
+
+
+    updateDate(now);
+
 }
 
 
-/* -----------------------------------------
-   TOP STATUS
-   ----------------------------------------- */
+/* ---------- DATE ---------- */
 
-.top-status {
-  width: 100%;
+function updateDate(date) {
 
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+    const options = {
 
-  font-size: 13px;
-  font-weight: 500;
+        weekday: "short",
 
-  color: var(--muted);
-}
+        day: "numeric",
 
-.charging-status {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
+        month: "short"
 
-.bolt {
-  color: var(--green);
-  font-size: 20px;
-  line-height: 1;
-}
+    };
 
-.battery {
-  color: var(--text);
+
+    dateElement.textContent =
+        date.toLocaleDateString(
+            undefined,
+            options
+        );
+
 }
 
 
-/* -----------------------------------------
-   CLOCK
-   ----------------------------------------- */
+/* ---------- BATTERY ---------- */
 
-.clock-section {
-  flex: 1;
+async function updateBattery() {
 
-  display: flex;
-  flex-direction: column;
+    /*
+        Browser battery API is not available
+        on every browser.
 
-  justify-content: center;
-  align-items: center;
+        If unavailable, we keep the
+        default value.
+    */
 
-  text-align: center;
+    if (!("getBattery" in navigator)) {
 
-  transform: translateY(-2%);
-}
+        return;
 
-.clock {
-  font-size: clamp(92px, 27vw, 190px);
-
-  line-height: 0.84;
-
-  font-weight: 300;
-
-  letter-spacing: -0.07em;
-
-  color: var(--text);
-
-  user-select: none;
-
-  text-shadow:
-    0 0 35px rgba(185, 140, 255, 0.10);
-}
-
-.date {
-  margin-top: 28px;
-
-  font-size: 15px;
-
-  font-weight: 400;
-
-  letter-spacing: 0.02em;
-
-  color: var(--muted);
-}
+    }
 
 
-/* -----------------------------------------
-   MUSIC PLAYER
-   ----------------------------------------- */
+    try {
 
-.music-player {
-  width: 100%;
-  max-width: 420px;
+        const battery =
+            await navigator.getBattery();
 
-  margin: 0 auto 20px;
 
-  padding: 16px;
+        function refreshBattery() {
 
-  display: grid;
+            const percentage =
+                Math.round(
+                    battery.level * 100
+                );
 
-  grid-template-columns:
-    58px
-    1fr;
+            batteryElement.textContent =
+                `${percentage}%`;
 
-  column-gap: 14px;
+        }
 
-  border-radius: 20px;
 
-  background: var(--card);
+        refreshBattery();
 
-  border: 1px solid var(--border);
 
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+        battery.addEventListener(
+            "levelchange",
+            refreshBattery
+        );
 
-  animation: playerAppear 350ms ease;
-}
 
-.hidden {
-  display: none;
+    } catch (error) {
+
+        console.log(
+            "Dong: Battery information unavailable."
+        );
+
+    }
+
 }
 
 
-/* Album art */
+/* ---------- CHARGING STATUS ---------- */
 
-.album-art {
-  width: 58px;
-  height: 58px;
+async function detectCharging() {
 
-  border-radius: 14px;
+    if (!("getBattery" in navigator)) {
 
-  background:
-    radial-gradient(
-      circle at 65% 35%,
-      #c58aff,
-      transparent 25%
-    ),
-    linear-gradient(
-      145deg,
-      #21113d,
-      #07070b
+        return;
+
+    }
+
+
+    try {
+
+        const battery =
+            await navigator.getBattery();
+
+
+        function updateCharging() {
+
+            const status =
+                document.querySelector(
+                    ".charging-status span:last-child"
+                );
+
+
+            if (status) {
+
+                status.textContent =
+                    battery.charging
+                        ? "Charging"
+                        : "Not charging";
+
+            }
+
+        }
+
+
+        updateCharging();
+
+
+        battery.addEventListener(
+            "chargingchange",
+            updateCharging
+        );
+
+
+    } catch (error) {
+
+        console.log(
+            "Dong: Charging state unavailable."
+        );
+
+    }
+
+}
+
+
+/* ---------- SETTINGS ---------- */
+
+function applySettings() {
+
+
+    /* CLOCK STYLE */
+
+    chargingScreen.classList.remove(
+        "clock-minimal",
+        "clock-outline"
     );
 
-  position: relative;
 
-  overflow: hidden;
-}
+    if (
+        settings.clockStyle ===
+        "minimal"
+    ) {
 
-.album-glow {
-  position: absolute;
+        chargingScreen.classList.add(
+            "clock-minimal"
+        );
 
-  width: 80px;
-  height: 80px;
+    }
 
-  left: -20px;
-  bottom: -40px;
 
-  border-radius: 50%;
+    if (
+        settings.clockStyle ===
+        "outline"
+    ) {
 
-  background: var(--purple);
+        chargingScreen.classList.add(
+            "clock-outline"
+        );
 
-  filter: blur(22px);
+    }
 
-  opacity: 0.55;
-}
 
+    /* THEME */
 
-/* Song information */
+    document.body.classList.remove(
+        "light"
+    );
 
-.song-info {
-  min-width: 0;
 
-  align-self: center;
-}
+    if (
+        settings.theme ===
+        "light"
+    ) {
 
-.song-title {
-  font-size: 15px;
+        document.body.classList.add(
+            "light"
+        );
 
-  font-weight: 500;
+    }
 
-  white-space: nowrap;
 
-  overflow: hidden;
+    /* BATTERY */
 
-  text-overflow: ellipsis;
-}
+    batteryElement.style.display =
+        settings.showBattery
+            ? ""
+            : "none";
 
-.artist {
-  margin-top: 4px;
 
-  font-size: 12px;
+    /* DATE */
 
-  color: var(--muted);
-}
+    dateElement.style.display =
+        settings.showDate
+            ? ""
+            : "none";
 
 
-/* Progress */
+    /* FORMAT */
 
-.progress-area {
-  grid-column: 1 / -1;
+    formatToggle.textContent =
+        settings.twentyFourHour
+            ? "ON"
+            : "OFF";
 
-  margin-top: 14px;
-}
 
-.progress-bar {
-  width: 100%;
-  height: 3px;
+    formatToggle.classList.toggle(
+        "active",
+        settings.twentyFourHour
+    );
 
-  border-radius: 10px;
 
-  background: rgba(255, 255, 255, 0.12);
+    /* BATTERY TOGGLE */
 
-  overflow: hidden;
-}
+    batteryToggle.textContent =
+        settings.showBattery
+            ? "ON"
+            : "OFF";
 
-.progress {
-  width: 36%;
-  height: 100%;
 
-  border-radius: inherit;
+    batteryToggle.classList.toggle(
+        "active",
+        settings.showBattery
+    );
 
-  background: var(--purple);
-}
 
-.progress-time {
-  display: flex;
+    /* DATE TOGGLE */
 
-  justify-content: space-between;
+    dateToggle.textContent =
+        settings.showDate
+            ? "ON"
+            : "OFF";
 
-  margin-top: 6px;
 
-  font-size: 10px;
+    dateToggle.classList.toggle(
+        "active",
+        settings.showDate
+    );
 
-  color: var(--muted);
-}
 
+    /* OPTION BUTTONS */
 
-/* Player controls */
+    document.querySelectorAll(
+        "[data-clock]"
+    ).forEach(button => {
 
-.player-controls {
-  grid-column: 1 / -1;
+        button.classList.toggle(
+            "active",
+            button.dataset.clock ===
+            settings.clockStyle
+        );
 
-  display: flex;
+    });
 
-  justify-content: center;
 
-  align-items: center;
+    document.querySelectorAll(
+        "[data-theme]"
+    ).forEach(button => {
 
-  gap: 38px;
+        button.classList.toggle(
+            "active",
+            button.dataset.theme ===
+            settings.theme
+        );
 
-  margin-top: 10px;
-}
+    });
 
-.player-controls button {
-  width: 36px;
-  height: 36px;
 
-  border: none;
+    saveSettings();
 
-  background: transparent;
-
-  color: var(--text);
-
-  font-size: 25px;
-
-  cursor: pointer;
-
-  display: grid;
-  place-items: center;
-}
-
-.player-controls .play-button {
-  width: 46px;
-  height: 46px;
-
-  border-radius: 50%;
-
-  background: var(--text);
-
-  color: #000;
-
-  font-size: 16px;
-}
-
-
-/* -----------------------------------------
-   BOTTOM
-   ----------------------------------------- */
-
-.bottom-message {
-  text-align: center;
-
-  font-size: 11px;
-
-  letter-spacing: 0.16em;
-
-  text-transform: uppercase;
-
-  color: rgba(255, 255, 255, 0.28);
-
-  padding-top: 8px;
-}
-
-
-/* -----------------------------------------
-   ANIMATION
-   ----------------------------------------- */
-
-@keyframes playerAppear {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-/* -----------------------------------------
-   SMALL SCREENS
-   ----------------------------------------- */
-
-@media (max-width: 360px) {
-
-  .charging-screen {
-    padding-left: 18px;
-    padding-right: 18px;
-  }
-
-  .clock {
-    font-size: 88px;
-  }
-
-  .date {
-    margin-top: 22px;
-  }
+    updateClock();
 
 }
 
 
-/* -----------------------------------------
-   LANDSCAPE
-   ----------------------------------------- */
+/* ---------- CLOCK OPTIONS ---------- */
 
-@media (orientation: landscape) {
+document.querySelectorAll(
+    "[data-clock]"
+).forEach(button => {
 
-  .charging-screen {
-    padding:
-      max(16px, env(safe-area-inset-top))
-      max(24px, env(safe-area-inset-right))
-      max(16px, env(safe-area-inset-bottom))
-      max(24px, env(safe-area-inset-left));
-  }
+    button.addEventListener(
+        "click",
+        () => {
 
-  .clock-section {
-    transform: translateY(0);
-  }
+            settings.clockStyle =
+                button.dataset.clock;
 
-  .clock {
-    font-size: min(22vh, 150px);
-  }
+            applySettings();
 
-  .date {
-    margin-top: 12px;
-  }
+        }
+    );
 
-  .music-player {
-    max-width: 480px;
-    margin-bottom: 10px;
-  }
+});
 
-}
+
+/* ---------- THEME OPTIONS ---------- */
+
+document.querySelectorAll(
+    "[data-theme]"
+).forEach(button => {
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            settings.theme =
+                button.dataset.theme;
+
+            applySettings();
+
+        }
+    );
+
+});
+
+
+/* ---------- FORMAT ---------- */
+
+formatToggle.addEventListener(
+    "click",
+    () => {
+
+        settings.twentyFourHour =
+            !settings.twentyFourHour;
+
+        applySettings();
+
+    }
+);
+
+
+/* ---------- BATTERY ---------- */
+
+batteryToggle.addEventListener(
+    "click",
+    () => {
+
+        settings.showBattery =
+            !settings.showBattery;
+
+        applySettings();
+
+    }
+);
+
+
+/* ---------- DATE ---------- */
+
+dateToggle.addEventListener(
+    "click",
+    () => {
+
+        settings.showDate =
+            !settings.showDate;
+
+        applySettings();
+
+    }
+);
+
+
+/* ---------- SETTINGS OPEN ---------- */
+
+settingsButton.addEventListener(
+    "click",
+    () => {
+
+        settingsPanel.classList.add(
+            "open"
+        );
+
+    }
+);
+
+
+/* ---------- SETTINGS CLOSE ---------- */
+
+closeSettings.addEventListener(
+    "click",
+    () => {
+
+        settingsPanel.classList.remove(
+            "open"
+        );
+
+    }
+);
+
+
+/* ---------- MUSIC DEMO ---------- */
+
+/*
+    For now this is a UI demonstration.
+
+    Real Android music detection will be
+    implemented in the native Android
+    version of Dong.
+
+    The GitHub Pages version cannot
+    automatically control another app's
+    music player.
+*/
+
+
+let isPlaying = false;
+
+
+playButton.addEventListener(
+    "click",
+    () => {
+
+        isPlaying =
+            !isPlaying;
+
+
+        playButton.textContent =
+            isPlaying
+                ? "Ⅱ"
+                : "▶";
+
+    }
+);
+
+
+previousButton.addEventListener(
+    "click",
+    () => {
+
+        console.log(
+            "Dong: Previous track"
+        );
+
+    }
+);
+
+
+nextButton.addEventListener(
+    "click",
+    () => {
+
+        console.log(
+            "Dong: Next track"
+        );
+
+    }
+);
+
+
+/* ---------- INITIALIZE ---------- */
+
+loadSettings();
+
+updateClock();
+
+updateBattery();
+
+detectCharging();
+
+
+/* ---------- CLOCK REFRESH ---------- */
+
+setInterval(
+    updateClock,
+    1000
+);
