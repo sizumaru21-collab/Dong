@@ -1,94 +1,245 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  >
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
-  <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#050507">
 
-  <title>Dong</title>
+    <title>Dong — Charging Display</title>
 
-  <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="./style.css">
 </head>
 
 <body>
 
-  <main class="charging-screen">
+    <!--
+        DONG
+        Minimal charging display
+    -->
 
-    <!-- Top status -->
-    <div class="top-status">
-      <div class="charging-status">
-        <span class="bolt">ϟ</span>
-        <span>Charging</span>
-      </div>
+    <main id="chargingScreen" class="charging-screen">
 
-      <div class="battery">
-        78%
-      </div>
-    </div>
+        <!-- Top status -->
+        <div class="top-status">
 
+            <div class="charging-status">
+                <span class="bolt">ϟ</span>
+                <span>Charging</span>
+            </div>
 
-    <!-- Main clock -->
-    <section class="clock-section">
+            <div id="batteryPercent" class="battery-percent">
+                78%
+            </div>
 
-      <div id="clock" class="clock">
-        09<br>
-        30
-      </div>
-
-      <div id="date" class="date">
-        Fri, 14 Jul
-      </div>
-
-    </section>
-
-
-    <!-- Music player -->
-    <!-- Hidden until music is playing -->
-    <section id="musicPlayer" class="music-player hidden">
-
-      <div class="album-art">
-        <div class="album-glow"></div>
-      </div>
-
-      <div class="song-info">
-        <div class="song-title">Midnight Drive</div>
-        <div class="artist">Lo-Fi Vibes</div>
-      </div>
-
-      <div class="progress-area">
-        <div class="progress-bar">
-          <div class="progress"></div>
         </div>
 
-        <div class="progress-time">
-          <span>01:24</span>
-          <span>03:56</span>
+
+        <!-- Main clock -->
+        <section class="clock-section">
+
+            <div id="clock" class="clock">
+                09:30
+            </div>
+
+            <div id="date" class="date">
+                Fri, 14 Jul
+            </div>
+
+        </section>
+
+
+        <!-- Music player -->
+        <section id="musicPlayer" class="music-player hidden">
+
+            <div class="album-art">
+                <div class="album-icon">♪</div>
+            </div>
+
+            <div class="music-info">
+
+                <div id="songTitle" class="song-title">
+                    Midnight Drive
+                </div>
+
+                <div id="artistName" class="artist-name">
+                    Lo-Fi Vibes
+                </div>
+
+            </div>
+
+            <div class="music-controls">
+
+                <button id="previousButton" class="music-button">
+                    ‹
+                </button>
+
+                <button id="playButton" class="music-button play-button">
+                    ▶
+                </button>
+
+                <button id="nextButton" class="music-button">
+                    ›
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- App name -->
+        <div class="brand">
+            Dong
         </div>
-      </div>
 
-      <div class="player-controls">
-        <button aria-label="Previous">‹</button>
-        <button class="play-button" aria-label="Play">▶</button>
-        <button aria-label="Next">›</button>
-      </div>
-
-    </section>
+    </main>
 
 
-    <!-- Small bottom message -->
-    <div class="bottom-message">
-      Dong
-    </div>
+    <!-- Small settings panel -->
+    <button
+        id="settingsButton"
+        class="settings-button"
+        aria-label="Open settings"
+    >
+        ⚙
+    </button>
 
-  </main>
+
+    <aside id="settingsPanel" class="settings-panel">
+
+        <div class="settings-header">
+
+            <h2>Dong</h2>
+
+            <button
+                id="closeSettings"
+                class="close-button"
+                aria-label="Close settings"
+            >
+                ×
+            </button>
+
+        </div>
 
 
-  <script src="script.js"></script>
+        <div class="setting-group">
+
+            <label>Clock Style</label>
+
+            <div class="option-row">
+
+                <button
+                    class="option active"
+                    data-clock="digital"
+                >
+                    Digital
+                </button>
+
+                <button
+                    class="option"
+                    data-clock="minimal"
+                >
+                    Minimal
+                </button>
+
+                <button
+                    class="option"
+                    data-clock="outline"
+                >
+                    Outline
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="setting-group">
+
+            <label>Theme</label>
+
+            <div class="option-row">
+
+                <button
+                    class="option active"
+                    data-theme="amoled"
+                >
+                    AMOLED
+                </button>
+
+                <button
+                    class="option"
+                    data-theme="dark"
+                >
+                    Dark
+                </button>
+
+                <button
+                    class="option"
+                    data-theme="light"
+                >
+                    Light
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <div class="setting-group">
+
+            <label>24 Hour Format</label>
+
+            <button
+                id="formatToggle"
+                class="toggle active"
+            >
+                ON
+            </button>
+
+        </div>
+
+
+        <div class="setting-group">
+
+            <label>Show Battery</label>
+
+            <button
+                id="batteryToggle"
+                class="toggle active"
+            >
+                ON
+            </button>
+
+        </div>
+
+
+        <div class="setting-group">
+
+            <label>Show Date</label>
+
+            <button
+                id="dateToggle"
+                class="toggle active"
+            >
+                ON
+            </button>
+
+        </div>
+
+
+        <div class="settings-footer">
+            Dong · Minimal charging display
+        </div>
+
+    </aside>
+
+
+    <script src="./script.js"></script>
 
 </body>
 </html>
