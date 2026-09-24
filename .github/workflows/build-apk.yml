@@ -28,13 +28,13 @@ jobs:
         with:
           gradle-version: "8.10"
 
-      - name: Build Dong release APK
+      - name: Build Dong debug APK
         working-directory: android
         run: |
-          gradle --no-daemon :app:assembleRelease
+          gradle --no-daemon :app:assembleDebug
 
-      - name: Upload Dong APK
+      - name: Upload Dong debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Dong-release
-          path: android/app/build/outputs/apk/release/*.apk
+          name: Dong-debug
+          path: android/app/build/outputs/apk/debug/*.apk
