@@ -7,6 +7,10 @@ on:
       - "android/**"
       - ".github/workflows/build-apk.yml"
 
+concurrency:
+  group: dong-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
 
@@ -15,11 +19,11 @@ jobs:
     steps:
 
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
 
       - name: Set up Java
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: "17"
@@ -28,104 +32,75 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: >
-            platform-tools
-            emulator
-            platforms;android-35
-            build-tools;35.0.0
-            system-images;android-35;google_apis;x86_64
-
-
-      - name: Accept Android SDK licenses
-        run: yes | sdkmanager --licenses || true
+          packages: "platform-tools emulator"
 
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v6
+        uses: gradle/actions/setup-gradle@v5
         with:
           gradle-version: "8.10"
 
 
-      - name: Build Dong debug APK
+      - name: Build Dong
         working-directory: android
         run: |
           gradle --no-daemon :app:assembleDebug
 
 
-      - name: Create Android emulator
+      - name: Enable KVM
         run: |
-          echo "no" | avdmanager create avd \
-            --force \
-            --name dong-test \
-            --package "system-images;android-35;google_apis;x86_64" \
-            --device "pixel_2"
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
 
 
-      - name: Start Android emulator
-        run: |
-          nohup emulator \
-            -avd dong-test \
-            -no-window \
-            -no-audio \
-            -no-boot-anim \
-            -gpu swiftshader_indirect \
-            > emulator.log 2>&1 &
-
-
-      - name: Wait for emulator
-        run: |
-          adb wait-for-device
-
-          boot_completed=""
-
-          while [ "$boot_completed" != "1" ]; do
-            sleep 5
-            boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
-            echo "Boot status: $boot_completed"
-          done
-
-          adb shell input keyevent 82
-
-
-      - name: Install Dong
-        run: |
-          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-
-
-      - name: Launch Dong
-        run: |
-          adb shell am start \
-            -n com.dong.app/.MainActivity
-
-
-      - name: Check Dong process
-        run: |
-          adb shell pidof com.dong.app
-
-
-      - name: Run basic Android smoke test
-        run: |
-          adb shell dumpsys package com.dong.app
-          adb shell dumpsys activity activities | grep "com.dong.app"
-
-
-      - name: Show emulator log if needed
-        if: always()
-        run: |
-          adb logcat -d -t 300 > dong-logcat.txt
-
-
-      - name: Upload test logs
-        if: always()
-        uses: actions/upload-artifact@v4
+      - name: Run Dong on Android 14 emulator
+        uses: reactivecircus/android-emulator-runner@v2
         with:
-          name: Dong-test-logs
-          path: |
-            dong-logcat.txt
-            emulator.log
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_2
+          emulator-options: >-
+            -no-window
+            -gpu swiftshader_indirect
+            -noaudio
+            -no-boot-anim
+            -camera-back none
+          disable-animations: true
+          script: |
+
+            echo "Installing Dong..."
+
+            adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+
+            echo "Launching Dong..."
+
+            adb shell am start \
+              -n com.dong.app/.MainActivity
+
+            sleep 5
+
+            echo "Checking Dong process..."
+
+            adb shell pidof com.dong.app
+
+            echo "Checking Dong activity..."
+
+            adb shell dumpsys activity activities | grep "com.dong.app"
+
+            echo "Testing simulated charging state..."
+
+            adb shell dumpsys battery set ac 1
+
+            sleep 2
+
+            adb shell dumpsys battery
+
+            echo "Dong emulator test completed."
 
 
-      - name: Upload Dong debug APK
+      - name: Upload Dong APK
         uses: actions/upload-artifact@v4
         with:
           name: Dong-debug-tested
