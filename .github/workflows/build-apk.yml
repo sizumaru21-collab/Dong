@@ -1,4 +1,4 @@
-name: Build Dong APK
+name: Build and Test Dong
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - ".github/workflows/build-apk.yml"
 
 jobs:
-  build:
+  build-and-test:
 
     runs-on: ubuntu-latest
 
@@ -17,24 +17,116 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+
       - name: Set up Java
         uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "17"
 
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+        with:
+          packages: >
+            platform-tools
+            emulator
+            platforms;android-35
+            build-tools;35.0.0
+            system-images;android-35;google_apis;x86_64
+
+
+      - name: Accept Android SDK licenses
+        run: yes | sdkmanager --licenses || true
+
+
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: "8.10"
+
 
       - name: Build Dong debug APK
         working-directory: android
         run: |
           gradle --no-daemon :app:assembleDebug
 
+
+      - name: Create Android emulator
+        run: |
+          echo "no" | avdmanager create avd \
+            --force \
+            --name dong-test \
+            --package "system-images;android-35;google_apis;x86_64" \
+            --device "pixel_2"
+
+
+      - name: Start Android emulator
+        run: |
+          nohup emulator \
+            -avd dong-test \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -gpu swiftshader_indirect \
+            > emulator.log 2>&1 &
+
+
+      - name: Wait for emulator
+        run: |
+          adb wait-for-device
+
+          boot_completed=""
+
+          while [ "$boot_completed" != "1" ]; do
+            sleep 5
+            boot_completed=$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')
+            echo "Boot status: $boot_completed"
+          done
+
+          adb shell input keyevent 82
+
+
+      - name: Install Dong
+        run: |
+          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+
+
+      - name: Launch Dong
+        run: |
+          adb shell am start \
+            -n com.dong.app/.MainActivity
+
+
+      - name: Check Dong process
+        run: |
+          adb shell pidof com.dong.app
+
+
+      - name: Run basic Android smoke test
+        run: |
+          adb shell dumpsys package com.dong.app
+          adb shell dumpsys activity activities | grep "com.dong.app"
+
+
+      - name: Show emulator log if needed
+        if: always()
+        run: |
+          adb logcat -d -t 300 > dong-logcat.txt
+
+
+      - name: Upload test logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dong-test-logs
+          path: |
+            dong-logcat.txt
+            emulator.log
+
+
       - name: Upload Dong debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: Dong-debug
+          name: Dong-debug-tested
           path: android/app/build/outputs/apk/debug/*.apk
