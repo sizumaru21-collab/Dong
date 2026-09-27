@@ -1,14 +1,18 @@
 package com.dong.app;
 
 import android.app.Activity;
-import android.os.Bundle;
 import android.os.BatteryManager;
 import android.os.Build;
+import android.os.Bundle;
+import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
@@ -21,6 +25,7 @@ public class MainActivity extends Activity {
     private TextView clockText;
     private TextView dateText;
     private TextView batteryText;
+    private TextView chargingText;
 
     private final SimpleDateFormat clockFormat =
             new SimpleDateFormat("HH:mm", Locale.getDefault());
@@ -44,6 +49,16 @@ public class MainActivity extends Activity {
 
         updateClock();
 
+        updateChargingState();
+    }
+
+
+    @Override
+    protected void onResume() {
+
+        super.onResume();
+
+        updateChargingState();
     }
 
 
@@ -55,14 +70,19 @@ public class MainActivity extends Activity {
         window.setNavigationBarColor(Color.BLACK);
 
         window.getDecorView().setSystemUiVisibility(
+
                 View.SYSTEM_UI_FLAG_FULLSCREEN |
+
                 View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY |
+
                 View.SYSTEM_UI_FLAG_HIDE_NAVIGATION |
+
                 View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN |
+
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION |
+
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
         );
-
     }
 
 
@@ -99,13 +119,13 @@ public class MainActivity extends Activity {
         );
 
         top.setGravity(
-                android.view.Gravity.CENTER_VERTICAL
+                Gravity.CENTER_VERTICAL
         );
 
 
-        TextView charging =
+        chargingText =
                 createText(
-                        "ϟ  Charging",
+                        "ϟ  Checking",
                         14,
                         Color.rgb(175, 150, 220)
                 );
@@ -120,7 +140,9 @@ public class MainActivity extends Activity {
 
 
         top.addView(
-                charging,
+
+                chargingText,
+
                 new LinearLayout.LayoutParams(
                         0,
                         LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -149,7 +171,7 @@ public class MainActivity extends Activity {
         );
 
         center.setGravity(
-                android.view.Gravity.CENTER
+                Gravity.CENTER
         );
 
 
@@ -159,6 +181,7 @@ public class MainActivity extends Activity {
                         90,
                         Color.WHITE
                 );
+
 
         clockText.setTypeface(
                 Typeface.create(
@@ -187,7 +210,9 @@ public class MainActivity extends Activity {
 
 
         root.addView(
+
                 center,
+
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         0,
@@ -208,12 +233,14 @@ public class MainActivity extends Activity {
                 );
 
         brand.setGravity(
-                android.view.Gravity.CENTER
+                Gravity.CENTER
         );
 
 
         root.addView(
+
                 brand,
+
                 new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         dp(30)
@@ -222,7 +249,6 @@ public class MainActivity extends Activity {
 
 
         setContentView(root);
-
     }
 
 
@@ -242,13 +268,12 @@ public class MainActivity extends Activity {
         view.setTextColor(color);
 
         view.setGravity(
-                android.view.Gravity.CENTER_VERTICAL
+                Gravity.CENTER_VERTICAL
         );
 
         view.setIncludeFontPadding(false);
 
         return view;
-
     }
 
 
@@ -275,19 +300,21 @@ public class MainActivity extends Activity {
 
         updateBattery();
 
+        updateChargingState();
+
 
         clockText.postDelayed(
+
                 new Runnable() {
 
                     @Override
                     public void run() {
                         updateClock();
                     }
-
                 },
+
                 1000
         );
-
     }
 
 
@@ -314,11 +341,94 @@ public class MainActivity extends Activity {
                 batteryText.setText(
                         level + "%"
                 );
-
             }
+        }
+    }
 
+
+    private void updateChargingState() {
+
+        if (chargingText == null) {
+            return;
         }
 
+
+        boolean charging = false;
+
+
+        /*
+         * Android 6.0+
+         */
+
+        if (Build.VERSION.SDK_INT >=
+                Build.VERSION_CODES.M) {
+
+            BatteryManager manager =
+                    (BatteryManager)
+                            getSystemService(
+                                    BATTERY_SERVICE
+                            );
+
+            charging =
+                    manager.isCharging();
+        }
+
+
+        /*
+         * Fallback for older Android versions
+         */
+
+        if (Build.VERSION.SDK_INT <
+                Build.VERSION_CODES.M) {
+
+            Intent batteryIntent =
+                    registerReceiver(
+                            null,
+                            new IntentFilter(
+                                    Intent.ACTION_BATTERY_CHANGED
+                            )
+                    );
+
+
+            if (batteryIntent != null) {
+
+                int status =
+                        batteryIntent.getIntExtra(
+                                BatteryManager.EXTRA_STATUS,
+                                -1
+                        );
+
+
+                charging =
+                        status ==
+                                BatteryManager.BATTERY_STATUS_CHARGING
+                                ||
+                        status ==
+                                BatteryManager.BATTERY_STATUS_FULL;
+            }
+        }
+
+
+        if (charging) {
+
+            chargingText.setText(
+                    "ϟ  Charging"
+            );
+
+            chargingText.setTextColor(
+                    Color.rgb(175, 150, 220)
+            );
+
+        } else {
+
+            chargingText.setText(
+                    "Not charging"
+            );
+
+            chargingText.setTextColor(
+                    Color.rgb(110, 110, 120)
+            );
+        }
     }
 
 
@@ -331,7 +441,5 @@ public class MainActivity extends Activity {
                                 .getDisplayMetrics()
                                 .density
                 );
-
     }
-
 }
